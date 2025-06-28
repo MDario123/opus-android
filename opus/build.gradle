@@ -2,14 +2,31 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
+    namespace 'com.theeasiestway.opus'
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(17))
+        }
+    }
+    kotlinOptions {
+        jvmTarget =  "17"
+    }
+    kotlin {
+        jvmToolchain(17)
+    }
 
-    ndkVersion '22.0.7026061'
 
-    compileSdkVersion 30
+    ndkVersion '25.2.9519653'
+
+    compileSdkVersion 33
 
     defaultConfig {
         minSdkVersion 18
-        targetSdkVersion 30
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
 
@@ -34,7 +51,7 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "3.31.6"
+            version "3.31.7"
         }
     }
 }
