@@ -8,3 +8,7 @@
 *.cxx
 app/.cxx/*
 .externalNativeBuild
+
+# clangd related
+.cache/
+compile_commands.json
