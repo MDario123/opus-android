@@ -1,157 +1,202 @@
-//
-// Created by Loboda Alexey on 21.05.2020.
-//
-
-#include <string>
+#include "include/opus.h"
 #include <jni.h>
-#include "codec/CodecOpus.h"
-#include "utils/SamplesConverter.h"
-
-CodecOpus codec;
 
 //
 // Encoding
 //
 
-extern "C"
-JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Opus_encoderInit(JNIEnv *env, jobject thiz, jint sample_rate, jint num_channels, jint application) {
-    return codec.encoderInit(sample_rate, num_channels, application);
+JNIEXPORT jlong JNICALL Java_com_theeasiestway_opus_Encoder_create(
+    JNIEnv *env, jobject thiz, jint sampleRate, jint channels, jint application,
+    jintArray jerror // optional: Java can pass this to receive error code
+) {
+  int error;
+  OpusEncoder *encoder = opus_encoder_create(
+      static_cast<opus_int32>(sampleRate), channels, application, &error);
+
+  // Optionally write the error code back into the passed-in int array
+  if (jerror != nullptr && env->GetArrayLength(jerror) > 0) {
+    env->SetIntArrayRegion(jerror, 0, 1, &error);
+  }
+
+  // Return pointer as jlong (Java long)
+  return reinterpret_cast<jlong>(encoder);
 }
 
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_theeasiestway_opus_Opus_encoderSetBitrate(JNIEnv *env, jobject thiz, jint bitrate) {
-    return codec.encoderSetBitrate(bitrate);
+JNIEXPORT void JNICALL Java_com_theeasiestway_opus_Encoder_release(
+    JNIEnv *env, jobject thiz, jlong handle) {
+  OpusEncoder *encoder = reinterpret_cast<OpusEncoder *>(handle);
+  if (encoder != nullptr) {
+    opus_encoder_destroy(encoder);
+  }
 }
 
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_theeasiestway_opus_Opus_encoderSetComplexity(JNIEnv *env, jobject thiz, jint complexity) {
-    return codec.encoderSetComplexity(complexity);
+JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Encoder_encodeShort(
+    JNIEnv *env, jobject thiz, jlong handle, jobject input, jint frameSize,
+    jobject output) {
+  OpusEncoder *encoder = reinterpret_cast<OpusEncoder *>(handle);
+  if (encoder == nullptr) {
+    return OPUS_INVALID_STATE;
+  }
+  if (input == nullptr || output == nullptr) {
+    return OPUS_BAD_ARG;
+  }
+
+  void *inputData = env->GetDirectBufferAddress(input);
+
+  if (inputData == nullptr) {
+    return OPUS_BAD_ARG;
+  }
+
+  void *outputPtr = env->GetDirectBufferAddress(output);
+
+  if (outputPtr == nullptr) {
+    return OPUS_BAD_ARG;
+  }
+
+  jlong outputLength = env->GetDirectBufferCapacity(output);
+
+  int result = opus_encode(encoder, static_cast<const opus_int16 *>(inputData),
+                           frameSize, static_cast<unsigned char *>(outputPtr),
+                           outputLength);
+
+  return result;
 }
 
-extern "C"
-JNIEXPORT jbyteArray JNICALL
-Java_com_theeasiestway_opus_Opus_encode___3BI(JNIEnv *env, jobject thiz, jbyteArray bytes, jint frame_size) {
-    jbyte *nativeBytes = env->GetByteArrayElements(bytes, 0);
-    std::vector<uint8_t> encodedData = codec.encode((uint8_t *) nativeBytes, frame_size);
-    int encodedSize = encodedData.size();
-    if (encodedSize <= 0) return nullptr;
+JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Encoder_encodeFloat(
+    JNIEnv *env, jobject thiz, jlong handle, jobject input, jint frameSize,
+    jobject output) {
+  OpusEncoder *encoder = reinterpret_cast<OpusEncoder *>(handle);
+  if (encoder == nullptr) {
+    return OPUS_INVALID_STATE;
+  }
+  if (input == nullptr || output == nullptr) {
+    return OPUS_BAD_ARG;
+  }
 
-    jbyteArray result = env->NewByteArray(encodedSize);
-    env->SetByteArrayRegion(result, 0, encodedSize, (jbyte *) encodedData.data());
-    env->ReleaseByteArrayElements(bytes, nativeBytes, 0);
+  void *inputData = env->GetDirectBufferAddress(input);
 
-    return result;
+  if (inputData == nullptr) {
+    return OPUS_BAD_ARG;
+  }
+
+  void *outputPtr = env->GetDirectBufferAddress(output);
+
+  if (outputPtr == nullptr) {
+    return OPUS_BAD_ARG;
+  }
+
+  jlong outputLength = env->GetDirectBufferCapacity(output);
+
+  int result = opus_encode_float(
+      encoder, static_cast<const float *>(inputData), frameSize,
+      static_cast<unsigned char *>(outputPtr), outputLength);
+
+  return result;
 }
 
-extern "C"
-JNIEXPORT jshortArray JNICALL
-Java_com_theeasiestway_opus_Opus_encode___3SI(JNIEnv *env, jobject thiz, jshortArray shorts, jint frame_size) {
-    jshort *nativeShorts = env->GetShortArrayElements(shorts, 0);
-    jint length = env->GetArrayLength(shorts);
-
-    std::vector<short> encodedData = codec.encode(nativeShorts, length, frame_size);
-    int encodedSize = encodedData.size();
-    if (encodedSize <= 0) return nullptr;
-
-    jshortArray result = env->NewShortArray(encodedSize);
-    env->SetShortArrayRegion(result, 0, encodedSize, encodedData.data());
-    env->ReleaseShortArrayElements(shorts, nativeShorts, 0);
-
-    return result;
-}
-
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_theeasiestway_opus_Opus_encoderRelease(JNIEnv *env, jobject thiz) {
-    codec.encoderRelease();
+JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Encoder_setBitrate(
+    JNIEnv *env, jobject thiz, jlong handle, jint bitrate) {
+  OpusEncoder *encoder = reinterpret_cast<OpusEncoder *>(handle);
+  if (encoder == nullptr) {
+    return OPUS_INVALID_STATE;
+  }
+  return opus_encoder_ctl(encoder, OPUS_SET_BITRATE(bitrate));
 }
 
 //
 // Decoding
 //
 
-extern "C"
-JNIEXPORT jint JNICALL
-Java_com_theeasiestway_opus_Opus_decoderInit(JNIEnv *env, jobject thiz, jint sample_rate, jint num_channels) {
-    return codec.decoderInit(sample_rate, num_channels);
+JNIEXPORT jlong JNICALL Java_com_theeasiestway_opus_Decoder_create(
+    JNIEnv *env, jobject thiz, jint sampleRate, jint channels,
+    jintArray jerror // optional: Java can pass this to receive error code
+) {
+  int error;
+  OpusDecoder *decoder = opus_decoder_create(
+      static_cast<opus_int32>(sampleRate), channels, &error);
+
+  // Optionally write the error code back into the passed-in int array
+  if (jerror != nullptr && env->GetArrayLength(jerror) > 0) {
+    env->SetIntArrayRegion(jerror, 0, 1, &error);
+  }
+
+  return reinterpret_cast<jlong>(decoder);
 }
 
-extern "C"
-JNIEXPORT jbyteArray JNICALL
-Java_com_theeasiestway_opus_Opus_decode___3BII(JNIEnv *env, jobject thiz, jbyteArray bytes, jint frame_size, jint fec) {
-    jbyte *nativeBytes = env->GetByteArrayElements(bytes, 0);
-    jint length = env->GetArrayLength(bytes);
-
-    std::vector<uint8_t> encodedData = codec.decode((uint8_t *) nativeBytes, length, frame_size, fec);
-    int encodedSize = encodedData.size();
-    if (encodedSize <= 0) return nullptr;
-
-    jbyteArray result = env->NewByteArray(encodedSize);
-    env->SetByteArrayRegion(result, 0, encodedSize, (jbyte *) encodedData.data());
-    env->ReleaseByteArrayElements(bytes, nativeBytes, 0);
-
-    return result;
+JNIEXPORT void JNICALL Java_com_theeasiestway_opus_Decoder_release(
+    JNIEnv *env, jobject thiz, jlong handle) {
+  OpusDecoder *decoder = reinterpret_cast<OpusDecoder *>(handle);
+  if (decoder != nullptr) {
+    opus_decoder_destroy(decoder);
+  }
 }
 
-extern "C"
-JNIEXPORT jshortArray JNICALL
-Java_com_theeasiestway_opus_Opus_decode___3SII(JNIEnv *env, jobject thiz, jshortArray shorts, jint frame_size, jint fec) {
-    jshort *nativeShorts = env->GetShortArrayElements(shorts, 0);
-    jint length = env->GetArrayLength(shorts);
+JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Decoder_decodeShort(
+    JNIEnv *env, jobject thiz, jlong handle, jobject input, jint inputLength,
+    jobject output, jint frameSize, jboolean decodeFEC) {
+  OpusDecoder *decoder = reinterpret_cast<OpusDecoder *>(handle);
+  if (decoder == nullptr) {
+    return OPUS_INVALID_STATE;
+  }
+  if (output == nullptr) {
+    return OPUS_BAD_ARG;
+  }
 
-    std::vector<short> encodedData = codec.decode(nativeShorts, length, frame_size, fec);
-    int encodedSize = encodedData.size();
-    if (encodedSize <= 0) return nullptr;
+  // It's fine if input is null, opus will handle it gracefully
+  // If input is not null, then it should be a direct buffer
+  void *inputData;
+  if (input == nullptr) {
+    inputData = nullptr;
+  } else {
+    inputData = env->GetDirectBufferAddress(input);
+    if (inputData == nullptr) {
+      return OPUS_BAD_ARG;
+    }
+  }
 
-    jshortArray result = env->NewShortArray(encodedSize);
-    env->SetShortArrayRegion(result, 0, encodedSize, encodedData.data());
-    env->ReleaseShortArrayElements(shorts, nativeShorts, 0);
+  void *outputData = env->GetDirectBufferAddress(output);
+  if (outputData == nullptr) {
+    return OPUS_BAD_ARG;
+  }
 
-    return result;
+  int result = opus_decode(
+      decoder, static_cast<const unsigned char *>(inputData), inputLength,
+      static_cast<opus_int16 *>(outputData), frameSize, decodeFEC ? 1 : 0);
+
+  return result;
 }
 
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_theeasiestway_opus_Opus_decoderRelease(JNIEnv *env, jobject thiz) {
-    codec.decoderRelease();
-}
+JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Decoder_decodeFloat(
+    JNIEnv *env, jobject thiz, jlong handle, jbyteArray input, jint inputLength,
+    jfloatArray output, jint frameSize, jboolean decodeFEC) {
+  OpusDecoder *decoder = reinterpret_cast<OpusDecoder *>(handle);
+  if (decoder == nullptr) {
+    return OPUS_INVALID_STATE;
+  }
+  if (output == nullptr) {
+    return OPUS_BAD_ARG;
+  }
 
-//
-// Utils
-//
+  // It's fine if input is null, opus will handle it gracefully
+  // If input is not null, then it should be a direct buffer
+  void *inputData;
+  if (input == nullptr) {
+    inputData = nullptr;
+  } else {
+    inputData = env->GetDirectBufferAddress(input);
+    if (inputData == nullptr) {
+      return OPUS_BAD_ARG;
+    }
+  }
 
-extern "C"
-JNIEXPORT jshortArray JNICALL
-Java_com_theeasiestway_opus_Opus_convert___3B(JNIEnv *env, jobject thiz, jbyteArray bytes) {
-    uint8_t *nativeBytes = (uint8_t *) env->GetByteArrayElements(bytes, 0);
-    jint length = env->GetArrayLength(bytes);
+  void *outputData = env->GetDirectBufferAddress(output);
+  if (outputData == nullptr) {
+    return OPUS_BAD_ARG;
+  }
 
-    std::vector<short> shorts = SamplesConverter::convert(&nativeBytes, length);
-    int size = shorts.size();
-    if (!size) return nullptr;
+  int result = opus_decode_float(
+      decoder, static_cast<const unsigned char *>(inputData), inputLength,
+      static_cast<float *>(outputData), frameSize, decodeFEC ? 1 : 0);
 
-    jshortArray result = env->NewShortArray(size);
-    env->SetShortArrayRegion(result, 0, size, shorts.data());
-    env->ReleaseByteArrayElements(bytes, (jbyte *) nativeBytes, 0);
-
-    return result;
-}
-
-extern "C"
-JNIEXPORT jbyteArray JNICALL
-Java_com_theeasiestway_opus_Opus_convert___3S(JNIEnv *env, jobject thiz, jshortArray shorts) {
-    short *nativeShorts = env->GetShortArrayElements(shorts, 0);
-    jint length = env->GetArrayLength(shorts);
-
-    std::vector<uint8_t> bytes = SamplesConverter::convert(&nativeShorts, length);
-    int size = bytes.size();
-    if (!size) return nullptr;
-
-    jbyteArray result = env->NewByteArray(size);
-    env->SetByteArrayRegion(result, 0, size, (jbyte *) bytes.data());
-    env->ReleaseShortArrayElements(shorts, nativeShorts, 0);
-
-    return result;
+  return result;
 }
