@@ -5,7 +5,7 @@
 // Encoding
 //
 
-JNIEXPORT jlong JNICALL Java_com_theeasiestway_opus_Encoder_create(
+extern "C" JNIEXPORT jlong JNICALL Java_com_theeasiestway_opus_Encoder_create(
     JNIEnv *env, jobject thiz, jint sampleRate, jint channels, jint application,
     jintArray jerror // optional: Java can pass this to receive error code
 ) {
@@ -22,7 +22,7 @@ JNIEXPORT jlong JNICALL Java_com_theeasiestway_opus_Encoder_create(
   return reinterpret_cast<jlong>(encoder);
 }
 
-JNIEXPORT void JNICALL Java_com_theeasiestway_opus_Encoder_release(
+extern "C" JNIEXPORT void JNICALL Java_com_theeasiestway_opus_Encoder_release(
     JNIEnv *env, jobject thiz, jlong handle) {
   OpusEncoder *encoder = reinterpret_cast<OpusEncoder *>(handle);
   if (encoder != nullptr) {
@@ -30,9 +30,11 @@ JNIEXPORT void JNICALL Java_com_theeasiestway_opus_Encoder_release(
   }
 }
 
-JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Encoder_encodeShort(
-    JNIEnv *env, jobject thiz, jlong handle, jobject input, jint frameSize,
-    jobject output) {
+extern "C" JNIEXPORT jint JNICALL
+Java_com_theeasiestway_opus_Encoder_encodeShort(JNIEnv *env, jobject thiz,
+                                                jlong handle, jobject input,
+                                                jint frameSize,
+                                                jobject output) {
   OpusEncoder *encoder = reinterpret_cast<OpusEncoder *>(handle);
   if (encoder == nullptr) {
     return OPUS_INVALID_STATE;
@@ -62,9 +64,11 @@ JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Encoder_encodeShort(
   return result;
 }
 
-JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Encoder_encodeFloat(
-    JNIEnv *env, jobject thiz, jlong handle, jobject input, jint frameSize,
-    jobject output) {
+extern "C" JNIEXPORT jint JNICALL
+Java_com_theeasiestway_opus_Encoder_encodeFloat(JNIEnv *env, jobject thiz,
+                                                jlong handle, jobject input,
+                                                jint frameSize,
+                                                jobject output) {
   OpusEncoder *encoder = reinterpret_cast<OpusEncoder *>(handle);
   if (encoder == nullptr) {
     return OPUS_INVALID_STATE;
@@ -94,8 +98,9 @@ JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Encoder_encodeFloat(
   return result;
 }
 
-JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Encoder_setBitrate(
-    JNIEnv *env, jobject thiz, jlong handle, jint bitrate) {
+extern "C" JNIEXPORT jint JNICALL
+Java_com_theeasiestway_opus_Encoder_setBitrate(JNIEnv *env, jobject thiz,
+                                               jlong handle, jint bitrate) {
   OpusEncoder *encoder = reinterpret_cast<OpusEncoder *>(handle);
   if (encoder == nullptr) {
     return OPUS_INVALID_STATE;
@@ -107,7 +112,7 @@ JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Encoder_setBitrate(
 // Decoding
 //
 
-JNIEXPORT jlong JNICALL Java_com_theeasiestway_opus_Decoder_create(
+extern "C" JNIEXPORT jlong JNICALL Java_com_theeasiestway_opus_Decoder_create(
     JNIEnv *env, jobject thiz, jint sampleRate, jint channels,
     jintArray jerror // optional: Java can pass this to receive error code
 ) {
@@ -123,7 +128,7 @@ JNIEXPORT jlong JNICALL Java_com_theeasiestway_opus_Decoder_create(
   return reinterpret_cast<jlong>(decoder);
 }
 
-JNIEXPORT void JNICALL Java_com_theeasiestway_opus_Decoder_release(
+extern "C" JNIEXPORT void JNICALL Java_com_theeasiestway_opus_Decoder_release(
     JNIEnv *env, jobject thiz, jlong handle) {
   OpusDecoder *decoder = reinterpret_cast<OpusDecoder *>(handle);
   if (decoder != nullptr) {
@@ -131,9 +136,12 @@ JNIEXPORT void JNICALL Java_com_theeasiestway_opus_Decoder_release(
   }
 }
 
-JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Decoder_decodeShort(
-    JNIEnv *env, jobject thiz, jlong handle, jobject input, jint inputLength,
-    jobject output, jint frameSize, jboolean decodeFEC) {
+extern "C" JNIEXPORT jint JNICALL
+Java_com_theeasiestway_opus_Decoder_decodeShort(JNIEnv *env, jobject thiz,
+                                                jlong handle, jobject input,
+                                                jint inputLength,
+                                                jobject output, jint frameSize,
+                                                jboolean decodeFEC) {
   OpusDecoder *decoder = reinterpret_cast<OpusDecoder *>(handle);
   if (decoder == nullptr) {
     return OPUS_INVALID_STATE;
@@ -166,7 +174,8 @@ JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Decoder_decodeShort(
   return result;
 }
 
-JNIEXPORT jint JNICALL Java_com_theeasiestway_opus_Decoder_decodeFloat(
+extern "C" JNIEXPORT jint JNICALL
+Java_com_theeasiestway_opus_Decoder_decodeFloat(
     JNIEnv *env, jobject thiz, jlong handle, jbyteArray input, jint inputLength,
     jfloatArray output, jint frameSize, jboolean decodeFEC) {
   OpusDecoder *decoder = reinterpret_cast<OpusDecoder *>(handle);
