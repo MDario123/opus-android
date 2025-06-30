@@ -20,7 +20,7 @@ jobs:
       - uses: cachix/install-nix-action@v31
 
       - name: Gradle build
-        run: nix develop --command './gradlew build'
+        run: nix develop --command ./gradlew build
 
       - name: Rename AAR to opus.aar
         run: cp opus/build/outputs/aar/opus-release.aar opus.aar
