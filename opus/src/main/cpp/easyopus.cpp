@@ -78,14 +78,9 @@ Java_com_theeasiestway_opus_Encoder_encodeFloat(JNIEnv *env, jobject thiz,
   }
 
   void *inputData = env->GetDirectBufferAddress(input);
-
-  if (inputData == nullptr) {
-    return OPUS_BAD_ARG;
-  }
-
   void *outputPtr = env->GetDirectBufferAddress(output);
 
-  if (outputPtr == nullptr) {
+  if (inputData == nullptr || outputPtr == nullptr) {
     return OPUS_BAD_ARG;
   }
 
