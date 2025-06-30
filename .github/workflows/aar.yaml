@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+
+jobs:
+  build_aar:
+    name: Build AAR
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+
+      - name: Gradle build
+        run: nix develop --command './gradlew build'
+
+      - name: Rename AAR to opus.aar
+        run: cp opus/build/outputs/aar/opus-release.aar opus.aar
+
+      - name: Upload AAR as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opus.aar
+          path: opus.aar
+
+      # Only run release step on tag push
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: opus.aar
